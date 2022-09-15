@@ -3,7 +3,6 @@ import {
     AzureClient,
     AzureConnectionConfig,
     AzureContainerServices,
-    LOCAL_MODE_TENANT_ID,
 } from '@fluidframework/azure-client';
 import {
     generateTestUser,
@@ -26,20 +25,19 @@ const azureUser = {
 
 const connectionConfig: AzureConnectionConfig = useAzure
     ? {
-          tenantId: process.env.AZURE_TENANT_ID ?? LOCAL_MODE_TENANT_ID,
+          type: 'remote',
           tokenProvider: new AzureFunctionTokenProvider(
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               process.env.AZURE_FUNCTION_TOKEN_PROVIDER_URL!,
               azureUser
           ),
-          orderer: process.env.AZURE_ORDERER ?? 'http://localhost:7070',
-          storage: process.env.AZURE_STORAGE ?? 'http://localhost:7070',
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          endpoint: process.env.AZURE_ENDPOINT!,
       }
     : {
-          tenantId: LOCAL_MODE_TENANT_ID,
+          type: 'local',
           tokenProvider: new InsecureTokenProvider('VALUE_NOT_USED', user),
-          orderer: 'http://localhost:7070',
-          storage: 'http://localhost:7070',
+          endpoint: 'http://localhost:7070',
       };
 
 const clientProps = {
