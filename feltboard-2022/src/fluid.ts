@@ -1,8 +1,11 @@
 import {
     AzureFunctionTokenProvider,
     AzureClient,
-    AzureConnectionConfig,
-    AzureContainerServices,
+    AzureRemoteConnectionConfig,
+    AzureLocalConnectionConfig,
+} from '@fluidframework/azure-client';
+import type {     AzureContainerServices,
+    AzureClientProps,
 } from '@fluidframework/azure-client';
 import {
     generateTestUser,
@@ -13,7 +16,7 @@ import { ContainerSchema, IFluidContainer, SharedMap } from 'fluid-framework';
 // Define the server (Azure or local) we will be using
 const useAzure = process.env.FLUID_CLIENT === 'azure';
 if (!useAzure) {
-    console.warn(`Configured to use local tinylicious.`);
+    console.warn(`Configured to use azure-local-service.`);
 }
 
 const user = generateTestUser();
@@ -23,28 +26,31 @@ const azureUser = {
     userName: user.name,
 };
 
-const connectionConfig: AzureConnectionConfig = useAzure
+// The config is set to run against a local service by default.
+const serviceConfig: AzureClientProps = useAzure
     ? {
-          type: 'remote',
-          tokenProvider: new AzureFunctionTokenProvider(
+          connection: {
+              type: 'remote',
+              tokenProvider: new AzureFunctionTokenProvider(
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  process.env.AZURE_FUNCTION_TOKEN_PROVIDER_URL!,
+                  azureUser,
+                  ),
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                tenantId: process.env.AZURE_TENANT_ID!,
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              process.env.AZURE_FUNCTION_TOKEN_PROVIDER_URL!,
-              azureUser
-          ),
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          endpoint: process.env.AZURE_ENDPOINT!,
+              endpoint: process.env.AZURE_ENDPOINT!,
+          } as AzureRemoteConnectionConfig,
       }
     : {
-          type: 'local',
-          tokenProvider: new InsecureTokenProvider('VALUE_NOT_USED', user),
-          endpoint: 'http://localhost:7070',
-      };
+          connection: {
+              type: 'local',
+              tokenProvider: new InsecureTokenProvider('VALUE_NOT_USED', user),
+              endpoint: 'http://localhost:7070',
+          } as AzureLocalConnectionConfig,
+      } ;
 
-const clientProps = {
-    connection: connectionConfig,
-};
-
-const client = new AzureClient(clientProps);
+const client = new AzureClient(serviceConfig);
 
 // Define the schema of our Container. This includes the DDSes/DataObjects
 // that we want to create dynamically and any
